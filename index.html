@@ -1,1 +1,318 @@
-test
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Case-Mine Market | Season 2</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --tg-theme-bg-color: #0b0e14;
+            --accent-blue: #007aff;
+            --ton-blue: #0098ea;
+            --glass: rgba(255, 255, 255, 0.04);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--tg-theme-bg-color);
+            color: white;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .safe-area { height: calc(100vh - 80px); overflow-y: auto; padding-bottom: 100px; }
+        .glass { background: var(--glass); backdrop-filter: blur(15px); border: 1px solid var(--glass-border); border-radius: 18px; }
+        
+        /* Season Banner Gradient */
+        .season-banner {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 20px rgba(217, 119, 6, 0.3);
+        }
+
+        /* Item Grid */
+        .item-card {
+            background: #161b22;
+            border-radius: 20px;
+            transition: transform 0.2s ease;
+        }
+        .item-card:active { transform: scale(0.97); }
+
+        /* Navigation */
+        .nav-active { color: var(--accent-blue); }
+        .nav-item { transition: all 0.2s ease; opacity: 0.5; }
+        .nav-item.active { opacity: 1; color: var(--accent-blue); }
+
+        /* Bottom Sheet */
+        #bottom-sheet {
+            transform: translateY(100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #bottom-sheet.open { transform: translateY(0); }
+
+        /* Hide Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+
+        .nft-id { color: #8b949e; font-family: monospace; }
+        .ton-price { background: #007aff; color: white; border-radius: 10px; padding: 4px 10px; font-weight: 700; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <header class="sticky top-0 z-30 bg-[#0b0e14]/80 backdrop-blur-md p-4 flex justify-between items-center">
+        <div class="flex gap-2">
+            <div class="glass px-3 py-1 flex items-center gap-2">
+                <span class="text-yellow-400">⭐</span>
+                <span id="star-balance" class="font-bold text-sm">0</span>
+                <button class="bg-blue-600/30 text-blue-400 rounded-full w-4 h-4 flex items-center justify-center text-[10px]">+</button>
+            </div>
+            <div class="glass px-3 py-1 flex items-center gap-2">
+                <span class="text-blue-400 text-xs">💎</span>
+                <span id="ton-balance" class="font-bold text-sm">0.00</span>
+            </div>
+        </div>
+        <div class="w-8 h-8 rounded-full border border-white/10 overflow-hidden">
+            <img src="https://via.placeholder.com/32" id="header-pfp" alt="">
+        </div>
+    </header>
+
+    <main class="safe-area">
+        <section id="page-store" class="page block">
+            <div class="px-4 mb-6">
+                <div class="season-banner rounded-2xl p-4 flex justify-between items-center overflow-hidden relative">
+                    <div class="z-10">
+                        <h3 class="font-black text-xl italic uppercase">Season 2</h3>
+                        <p class="text-[11px] font-bold opacity-90 uppercase tracking-tighter">Is officially open</p>
+                    </div>
+                    <span class="text-5xl z-10">🚀</span>
+                    <div class="absolute top-0 right-0 opacity-20 text-9xl -mr-10 -mt-5">✨</div>
+                </div>
+            </div>
+
+            <div class="flex gap-2 overflow-x-auto px-4 mb-4 no-scrollbar">
+                <button class="glass px-4 py-2 text-xs font-bold whitespace-nowrap bg-white/10">All items</button>
+                <button class="glass px-4 py-2 text-xs font-bold whitespace-nowrap">Collections</button>
+                <button class="glass px-4 py-2 text-xs font-bold whitespace-nowrap">Bundles</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 px-4" id="market-grid">
+                </div>
+        </section>
+
+        <section id="page-gifts" class="page hidden px-4">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">My Gifts</h2>
+                <span class="text-xs opacity-50" id="inv-count">0 items</span>
+            </div>
+
+            <div id="empty-state" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                <div class="w-32 h-32 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                    <i data-lucide="package-open" class="w-16 h-16 opacity-20"></i>
+                </div>
+                <h3 class="text-lg font-bold">No gifts yet</h3>
+                <p class="text-sm opacity-50 px-10 mb-6">Open cases to find rare items and list them here for TON.</p>
+                <button onclick="tg.openTelegramLink('https://t.me/CaseMine_on_bot/CaseMine')" class="bg-blue-600 px-6 py-3 rounded-xl font-bold">Go to Opener</button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3" id="inventory-grid"></div>
+        </section>
+
+        <section id="page-profile" class="page hidden px-4">
+            <div class="glass p-6 mb-4 flex flex-col items-center">
+                <img id="profile-pfp" src="" class="w-20 h-20 rounded-3xl border-4 border-white/5 mb-4">
+                <h3 id="profile-name" class="text-xl font-bold">Collector</h3>
+                <p class="text-xs text-blue-400 mb-6">Verified Trader</p>
+                
+                <div class="flex w-full gap-2">
+                    <button onclick="window.location.href='https://kneo-world.github.io/Case-mine/'" class="flex-1 glass py-3 flex items-center justify-center gap-2 text-sm font-bold">
+                        <i data-lucide="package" class="w-4 h-4"></i> Back to Cases
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="sheet-overlay" class="fixed inset-0 bg-black/60 z-40 hidden" onclick="closeSheet()"></div>
+    <div id="bottom-sheet" class="fixed bottom-0 left-0 right-0 z-50 glass rounded-t-[30px] p-6 bg-[#161b22]">
+        <div class="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6"></div>
+        <div id="sheet-content">
+            <div class="flex items-center gap-4 mb-6">
+                <div id="sell-preview-emoji" class="text-4xl glass p-4"></div>
+                <div>
+                    <h3 id="sell-preview-name" class="font-bold text-lg">Item Name</h3>
+                    <p class="text-xs opacity-50">Set your price in TON</p>
+                </div>
+            </div>
+            <div class="glass p-4 flex items-center mb-6">
+                <input type="number" id="price-input" placeholder="0.00" class="bg-transparent border-none outline-none text-2xl font-bold w-full">
+                <span class="text-blue-400 font-bold">TON</span>
+            </div>
+            <button id="confirm-list-btn" class="w-full bg-blue-600 py-4 rounded-2xl font-bold text-lg">List for Sale</button>
+        </div>
+    </div>
+
+    <nav class="fixed bottom-0 left-0 right-0 h-20 glass rounded-none border-t border-white/5 flex justify-around items-center px-4 z-30">
+        <button onclick="showPage('store')" class="nav-item active flex flex-col items-center gap-1" id="nav-store">
+            <i data-lucide="shopping-bag" class="w-5 h-5"></i><span class="text-[10px] font-bold">Store</span>
+        </button>
+        <button onclick="showPage('gifts')" class="nav-item flex flex-col items-center gap-1" id="nav-gifts">
+            <i data-lucide="gift" class="w-5 h-5"></i><span class="text-[10px] font-bold">My Gifts</span>
+        </button>
+        <button onclick="showPage('profile')" class="nav-item flex flex-col items-center gap-1" id="nav-profile">
+            <i data-lucide="user" class="w-5 h-5"></i><span class="text-[10px] font-bold">Profile</span>
+        </button>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // 1. DATA DEFINITIONS (Sync with Opener)
+        const MARKET_ITEMS = [
+            { id: 101, name: "B-Day Candle", emoji: "🕯️", price: 2.69, floor: "2.60", category: "NFT" },
+            { id: 102, name: "Astral Shard", emoji: "💎", price: 144.0, floor: "140.0", category: "NFT" },
+            { id: 103, name: "Moon Pendant", emoji: "🌙", price: 4.28, floor: "4.10", category: "NFT" },
+            { id: 104, name: "Light Sword", emoji: "⚔️", price: 6.64, floor: "6.50", category: "NFT" },
+            { id: 105, name: "Bonded Ring", emoji: "💍", price: 48.0, floor: "45.0", category: "NFT" },
+            { id: 106, name: "Perfume Bottle", emoji: "🧴", price: 107.0, floor: "100.0", category: "Gift" }
+        ];
+
+        let inventory = JSON.parse(localStorage.getItem('casemine_inventory')) || [];
+        let stars = parseFloat(localStorage.getItem('balance')) || 100.00;
+        let ton = 0.00;
+        let currentSellingIndex = -1;
+
+        // 2. INITIALIZATION
+        function init() {
+            lucide.createIcons();
+            updateHeader();
+            renderMarket();
+            
+            const user = tg.initDataUnsafe?.user;
+            if (user) {
+                document.getElementById('profile-name').innerText = user.first_name;
+                if(user.photo_url) {
+                    document.getElementById('header-pfp').src = user.photo_url;
+                    document.getElementById('profile-pfp').src = user.photo_url;
+                }
+            }
+        }
+
+        function updateHeader() {
+            document.getElementById('star-balance').innerText = stars.toFixed(0);
+            document.getElementById('ton-balance').innerText = ton.toFixed(2);
+        }
+
+        // 3. RENDER LOGIC
+        function renderMarket() {
+            const grid = document.getElementById('market-grid');
+            grid.innerHTML = MARKET_ITEMS.map(item => `
+                <div class="item-card p-4 flex flex-col items-center text-center">
+                    <div class="text-5xl mb-4 py-4">${item.emoji}</div>
+                    <h4 class="font-bold text-sm mb-1">${item.name}</h4>
+                    <p class="nft-id text-[10px] mb-3">#${Math.floor(Math.random()*90000)+10000}</p>
+                    <div class="w-full flex justify-between items-center mt-auto">
+                        <span class="text-[9px] opacity-40 text-left leading-tight">Floor<br><span class="opacity-100">${item.floor} TON</span></span>
+                        <button class="ton-price">${item.price} TON</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderInventory() {
+            const grid = document.getElementById('inventory-grid');
+            const empty = document.getElementById('empty-state');
+            
+            if (inventory.length === 0) {
+                empty.classList.remove('hidden');
+                grid.classList.add('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            grid.classList.remove('hidden');
+            document.getElementById('inv-count').innerText = `${inventory.length} items`;
+
+            grid.innerHTML = inventory.map((item, index) => `
+                <div class="item-card p-4 flex flex-col items-center text-center relative overflow-hidden" onclick="openSellSheet(${index})">
+                    <div class="text-4xl mb-3">${item.emoji}</div>
+                    <h4 class="font-bold text-xs truncate w-full">${item.name}</h4>
+                    <p class="text-[9px] opacity-40 mt-1">Value: ${item.value || 0} ⭐</p>
+                    <div class="absolute top-2 right-2 bg-blue-500/20 text-blue-400 text-[8px] font-bold px-1.5 py-0.5 rounded">GIFT</div>
+                </div>
+            `).join('');
+        }
+
+        // 4. NAVIGATION
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+            
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById(`nav-${pageId}`).classList.add('active');
+
+            if(pageId === 'gifts') renderInventory();
+            tg.HapticFeedback.impactOccurred('light');
+        }
+
+        // 5. SELL LOGIC (The Bridge)
+        function openSellSheet(index) {
+            currentSellingIndex = index;
+            const item = inventory[index];
+            document.getElementById('sell-preview-emoji').innerText = item.emoji;
+            document.getElementById('sell-preview-name').innerText = item.name;
+            
+            document.getElementById('sheet-overlay').classList.remove('hidden');
+            document.getElementById('bottom-sheet').classList.add('open');
+            tg.HapticFeedback.impactOccurred('medium');
+        }
+
+        function closeSheet() {
+            document.getElementById('sheet-overlay').classList.add('hidden');
+            document.getElementById('bottom-sheet').classList.remove('open');
+        }
+
+        document.getElementById('confirm-list-btn').addEventListener('click', () => {
+            const price = document.getElementById('price-input').value;
+            if(!price || price <= 0) {
+                tg.showAlert("Please enter a valid TON price");
+                return;
+            }
+
+            // In a real app, this would send to your backend API.
+            // For this bridge, we remove it from inventory and "list" it.
+            const removedItem = inventory.splice(currentSellingIndex, 1)[0];
+            
+            // Sync back to localStorage for the Opener App
+            localStorage.setItem('casemine_inventory', JSON.stringify(inventory));
+            
+            tg.showConfirm(`Confirm listing ${removedItem.name} for ${price} TON?`, (ok) => {
+                if(ok) {
+                    tg.HapticFeedback.notificationOccurred('success');
+                    closeSheet();
+                    renderInventory();
+                }
+            });
+        });
+
+        // 6. SYNC CHECK
+        // If the user won an item in the other app, it appears here immediately
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'casemine_inventory') {
+                inventory = JSON.parse(e.newValue);
+                if(document.getElementById('page-gifts').classList.contains('hidden') === false) {
+                    renderInventory();
+                }
+            }
+        });
+
+        window.onload = init;
+    </script>
+</body>
+</html>
